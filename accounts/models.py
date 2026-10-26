@@ -32,6 +32,12 @@ class User(AbstractUser):
         help_text="Contact telephone number"
     )
 
+    profile_picture = models.ImageField(
+        upload_to='profile_pictures/',
+        blank=True,
+        null=True
+    )
+
     @property
     def is_donor(self):
         return self.role == self.ROLE_DONOR

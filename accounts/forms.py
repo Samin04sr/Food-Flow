@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.forms import AuthenticationForm
 from locations.models import Location
 from .models import Donor, Recipient
+from django.core.validators import FileExtensionValidator
 
 User = get_user_model()
 
@@ -182,3 +183,39 @@ class ProfileUpdateForm(forms.ModelForm):
         if User.objects.filter(email__iexact=email).exclude(pk=self.instance.pk).exists():
             raise forms.ValidationError("An account with this email already exists.")
         return email
+
+
+class ProfilePictureForm(forms.ModelForm):
+    profile_picture = forms.ImageField(
+        required=True,
+        validators=[
+            FileExtensionValidator(
+                allowed_extensions=['jpg', 'jpeg', 'png', 'webp']
+            )
+        ],
+        widget=forms.FileInput(attrs={
+            'accept': 'image/jpeg,image/png,image/webp',
+        })
+    )
+
+    class Meta:
+        model = User
+        fields = ['profile_picture']
+
+    def clean_profile_picture(self):
+        picture = self.cleaned_data['profile_picture']
+
+        if picture.size > 5 * 1024 * 1024:
+            raise forms.ValidationError(
+                "Profile picture must not exceed 5 MB."
+            )
+
+        uploaded_image = getattr(picture, 'image', None)
+
+        if uploaded_image is not None:
+            if uploaded_image.format not in ['JPEG', 'PNG', 'WEBP']:
+                raise forms.ValidationError(
+                    "Only JPG, PNG and WebP images are allowed."
+                )
+
+        return picture
