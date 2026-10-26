@@ -10,8 +10,8 @@ from locations.models import Location
 from listings.models import FoodListing
 from claims.models import Claim
 from .models import User, Donor, Recipient
-from .forms import UserRegistrationForm, UserLoginForm, ProfileUpdateForm
-
+from .forms import UserRegistrationForm, UserLoginForm, ProfileUpdateForm, ProfilePictureForm
+from django.views.decorators.http import require_POST
 
 def get_dashboard_redirect(user):
     """
@@ -313,3 +313,68 @@ def recipient_dashboard_view(request):
         'recent_available': recent_available,
     }
     return render(request, 'accounts/recipient_dashboard.html', context)
+
+@login_required
+@require_POST
+def profile_picture_update_view(request):
+    user = request.user
+
+    previous = User.objects.get(pk=user.pk).profile_picture
+    previous_name = previous.name
+    storage = previous.storage
+
+    form = ProfilePictureForm(
+        request.POST,
+        request.FILES,
+        instance=user
+    )
+
+    if form.is_valid():
+        with transaction.atomic():
+            user = form.save()
+
+            if previous_name and previous_name != user.profile_picture.name:
+                transaction.on_commit(
+                    lambda: storage.delete(previous_name)
+                )
+
+        messages.success(
+            request,
+            "Profile picture saved successfully."
+        )
+    else:
+        for errors in form.errors.values():
+            for error in errors:
+                messages.error(request, error)
+
+    return redirect('accounts:profile')
+
+
+@login_required
+@require_POST
+def profile_picture_delete_view(request):
+    user = request.user
+
+    if user.profile_picture:
+        previous_name = user.profile_picture.name
+        storage = user.profile_picture.storage
+
+        with transaction.atomic():
+            user.profile_picture = ''
+            user.save(update_fields=['profile_picture'])
+
+            transaction.on_commit(
+                lambda: storage.delete(previous_name)
+            )
+
+        messages.success(
+            request,
+            "Profile picture removed successfully."
+        )
+    else:
+        messages.info(
+            request,
+            "You do not have a profile picture."
+        )
+
+    return redirect('accounts:profile')

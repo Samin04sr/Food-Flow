@@ -10,6 +10,17 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('profile/', views.profile_view, name='profile'),
 
+    path(
+        'profile/picture/upload/',
+        views.profile_picture_update_view,
+        name='profile_picture_update'
+    ),
+    path(
+        'profile/picture/remove/',
+        views.profile_picture_delete_view,
+        name='profile_picture_delete'
+    ),
+
     # Role Dashboards
     path('donor/dashboard/', views.donor_dashboard_view, name='donor_dashboard'),
     path('recipient/dashboard/', views.recipient_dashboard_view, name='recipient_dashboard'),
